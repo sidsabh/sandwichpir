@@ -1,0 +1,81 @@
+diff --git a/research/InsPIRe/src/bin/inspire.rs b/research/InsPIRe/src/bin/inspire.rs
+index bb13c7b..b36cc01 100644
+--- a/research/InsPIRe/src/bin/inspire.rs
++++ b/research/InsPIRe/src/bin/inspire.rs
+@@ -37,10 +37,24 @@ pub const RGSW_SEEDS: [[u8; 32]; 6] = [
+     [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,],
+ ];
+ 
++// PATCH: deterministic synthetic plaintext coefficient for a flat database index.
++// The benchmark's records are random filler, and every index is read exactly once
++// during encoding, so they can be produced on demand instead of being materialised
++// in a Vec. Being a pure function of the index (rather than sampled) keeps the
++// correctness check below possible: it recomputes just the entries it needs.
++#[inline]
++fn synth_pt(idx: usize, modulus: u64) -> u64 {
++    let mut x = (idx as u64) ^ 0x9E37_79B9_7F4A_7C15;
++    x ^= x >> 30; x = x.wrapping_mul(0xBF58_476D_1CE4_E5B9);
++    x ^= x >> 27; x = x.wrapping_mul(0x94D0_49BB_1331_11EB);
++    x ^= x >> 31;
++    x % modulus
++}
++
+ pub trait RGSWPIR<'a> {
+     fn new_rgswpir<'b>(
+         params: &'a Params,
+-        db: &[u16],
++        db: Option<&[u16]>,
+         interpolate_degree: usize,
+     ) -> Self;
+ 
+@@ -63,7 +77,7 @@ u64: From<T>,
+ {
+     fn new_rgswpir<'b>(
+         params: &'a Params,
+-        db: &[u16],
++        db: Option<&[u16]>,
+         interpolate_degree: usize,
+     ) -> Self {
+         let second_level_packing_mask = PackingType::InspiRING;
+@@ -159,7 +173,10 @@ u64: From<T>,
+                     for k in 0..gamma {
+                         let j = which_poly * interpolate_degree * gamma + j_prime * gamma + k;
+                         let idx = j * db_rows + i;
+-                        point.get_poly_mut(0, 0)[k] = db[idx] as u64;
++                        point.get_poly_mut(0, 0)[k] = match db {
++                            Some(d) => d[idx] as u64,
++                            None => synth_pt(idx, plaintext_params.modulus),
++                        };
+                     }
+                     points.push(point);
+                 }
+@@ -470,15 +487,14 @@ pub fn run_simple_ypir_rgsw_on_params(
+     // let usable_modulus = (2.0 as f64).powi((params.pt_modulus as f64).log2().floor() as i32) as u64;
+     // let usable_modulus = 256;
+     // println!("usable_modulus: {}", usable_modulus);
+-    let mut pt_iter = std::iter::repeat_with(|| (T::sample() as u64 % params.pt_modulus) as T);
+-    let mut actual_db = Vec::with_capacity(db_cols*db_rows);
+-    for _ in 0..db_cols*db_rows {
+-        actual_db.push(pt_iter.next().unwrap());
+-    }
++    // PATCH: generate the synthetic database inside new_rgswpir instead of
++    // materialising it here first. Holding both this Vec and the encoder's buffer
++    // cost 4x the logical database (each stores one R_p coefficient per u16), which
++    // put 16 GiB out of reach on a 64 GiB host; generating on demand halves it.
+     let start_encode_comp = Instant::now();
+     let y_server = YServer::<T>::new_rgswpir(
+         &params,
+-        &actual_db,
++        None,
+         interpolate_degree,
+     );
+     let encode_server_time_ms = start_encode_comp.elapsed().as_millis();
+@@ -633,7 +649,7 @@ pub fn run_simple_ypir_rgsw_on_params(
+         let target_sub_col = (target_col % (interpolate_degree * gamma)) / gamma;
+         let mut correct_from_db = Vec::with_capacity(db_cols);
+         for i in 0..db_cols {
+-            correct_from_db.push(actual_db[i * db_rows + target_row].to_u64());
++            correct_from_db.push(synth_pt(i * db_rows + target_row, params.pt_modulus));
+         }
+         let mut sub_corr_result = Vec::new();
+         for which_poly in 0..c {

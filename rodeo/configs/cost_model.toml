@@ -1,0 +1,40 @@
+# AWS cost model
+# Consumed by table/make_table.py to compute the $/Mq columns.
+# All prices in USD; region = us-west-2.
+
+[instances.cpu]
+name           = "c7i.2xlarge"
+hourly_usd     = 0.357
+vcpu           = 8              # Sapphire Rapids
+ram_gib        = 16
+arch           = "x86_64"
+avx512         = true
+notes          = "Same CPU instance for all CPU rows."
+
+[instances.gpu]
+name           = "g6e.2xlarge"
+hourly_usd     = 2.24
+vcpu           = 8              # AMD EPYC 7R13
+ram_gib        = 64
+vram_gib       = 46
+gpu            = "NVIDIA L40S"
+compute_cap    = "8.9"          # sm_89
+int8_tops      = 733            # peak
+notes          = "Upgraded from g6e.xlarge (32 GiB DRAM) to fit DistPIR at 4 GiB DB: their GPU staging code needs both a Go-side DB and a same-size C-side pinned host buffer in uint32 form (~32 GiB host memory total)."
+
+[bandwidth]
+# AWS S3 / EC2 egress tier (first 10 TB/mo).
+# Ingress is free — client-to-server upload doesn't hit the bill.
+egress_usd_per_gb = 0.09
+ingress_usd_per_gb = 0.00
+
+[model]
+# For Table 1 (K = 1, single-shot per client):
+#   $/Mq_compute = server_seconds * instance.hourly_usd * 1e6 / 3600
+#   $/Mq_egress  = (download_bytes + hint_bytes) * egress_usd_per_gb * 1e6 / 1e9
+#   $/Mq_total   = compute + egress
+#
+# For Table 3 (K > 1, multi-query amortization):
+#   hint_bytes divided by K before egress computation.
+queries_per_client_headline = 1
+queries_per_client_amortized = [10, 100, 1000, 10000]

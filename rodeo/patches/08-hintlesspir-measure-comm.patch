@@ -1,0 +1,48 @@
+--- a/hintless_simplepir/hintless_simplepir_benchmarks.cc
++++ b/hintless_simplepir/hintless_simplepir_benchmarks.cc
+@@ -30,6 +30,12 @@
+ 
+ ABSL_FLAG(int, num_rows, 1024, "Number of rows");
+ ABSL_FLAG(int, num_cols, 1024, "Number of cols");
++// PATCH: LinPIR block size. The response carries one RLWE ciphertext per block,
++// where blocks = ceil(db_rows / rows_per_block), so this trades download against
++// rotations (key size and server time). Upstream fixes it at 1024, matched to the
++// default db_rows=1024; exposed here so it can be set per database shape.
++// The structural maximum is n/2 = 2048 at log_n = 12.
++ABSL_FLAG(int, rows_per_block, 0, "LinPIR rows per block (0 = upstream default)");
+ 
+ namespace hintless_pir {
+ namespace hintless_simplepir {
+@@ -64,6 +70,8 @@
+   Parameters params = kParameters;
+   params.db_rows = num_rows;
+   params.db_cols = num_cols;
++  int rpb = absl::GetFlag(FLAGS_rows_per_block);
++  if (rpb > 0) params.linpir_params.rows_per_block = rpb;
+ 
+   // Create server and fill in random database records.
+   auto server = Server::CreateWithRandomDatabaseRecords(params).value();
+@@ -88,6 +96,23 @@
+   std::string record = client->RecoverRecord(response).value();
+   std::string expected = database->Record(1).value();
+   ASSERT_EQ(record, expected);
++
++  // PATCH: report measured serialized communication. Upstream emits no byte
++  // counts, so the comparison had to cite published figures instead of measuring.
++  // The request bundles the one-time LinPIR Galois key with the per-query
++  // ciphertexts, so size linpir_gk_bs separately to split offline from online.
++  size_t gk_bytes = 0;
++  for (const auto& poly : request.linpir_gk_bs()) {
++    gk_bytes += poly.ByteSizeLong();
++  }
++  const size_t request_bytes = request.ByteSizeLong();
++  state.counters["offline_down_bytes"] =
++      static_cast<double>(public_params.ByteSizeLong());
++  state.counters["offline_up_bytes"] = static_cast<double>(gk_bytes);
++  state.counters["online_up_bytes"] =
++      static_cast<double>(request_bytes - gk_bytes);
++  state.counters["online_down_bytes"] =
++      static_cast<double>(response.ByteSizeLong());
+ }
+ BENCHMARK(BM_HintlessPirRlwe64);
+ 

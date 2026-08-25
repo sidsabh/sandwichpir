@@ -1,0 +1,134 @@
+Purpose: three changes to CrowdSurf's throughput benchmark, merged into one
+patch because they touch adjacent regions of the same function.
+
+1. Respect the `-batch N` CLI flag instead of iterating the hardcoded
+   `ks = {1, 8, 32, ..., 2048}`. Upstream ignores `-batch` in throughput mode
+   and always sweeps all nine sizes.
+
+2. Add a `-batches 1,2,4,...` flag for sweeps. The DB generation and hint
+   computation above the loop are the dominant cost (~10 min at 4 GiB), so a
+   batch-scaling sweep must stay inside one invocation rather than re-invoking
+   the binary per point.
+
+3. Replace `testing.Benchmark` with an explicit 10-trial loop. Upstream reports
+   only an averaged throughput over an auto-scaled iteration count; timing each
+   `Answer` separately gives per-trial times and a real standard deviation,
+   matching SandwichPIR's `allServerTimesMs` convention. Emits a
+   machine-parseable `TrialsMs(...): t1, t2, ...` line alongside the existing
+   `Throughput(...)` line.
+
+Apply with: patch -l -p1 -d schemes/distpir < patches/03-distpir-bench-harness.patch
+
+--- a/benches/benches.go
++++ b/benches/benches.go
+@@ -20,6 +20,12 @@ var cols *uint64
+ var pMod *uint64
+ var bitsPer *uint64
+ var batchSize *uint64
++
++// PATCH: optional comma-separated batch list for the throughput sweep, so one
++// invocation can cover many batch sizes and pay the (expensive) DB generation
++// and hint computation only once.
++var batchList *string
++
+ var cutoff *uint64
+ var mode lhe.Mode
+ var hashMode pbc.Mode
+@@ -87,6 +93,7 @@ func main() {
+ 	hashModeType := flag.String("hash", "cuckoo", "(cuckoo/hash)")
+ 	packingType := flag.String("packing", "balanced", "(balanced/comm/storage)")
+ 	batchSize = flag.Uint64("batch", 1, "batch size")
++	batchList = flag.String("batches", "", "comma-separated batch sizes (throughput bench; overrides -batch)")
+ 	cutoff = flag.Uint64("cutoff", 0, "dPIR cutoff")
+ 	memprofile := flag.String("memprofile", "", "write memory profile to `file`")
+ 	flag.Parse()
+--- a/benches/lhe_throughput.go
++++ b/benches/lhe_throughput.go
+@@ -7,7 +7,9 @@ import (
+ 	"github.com/ryanleh/secure-inference/lhe"
+ 	m "github.com/ryanleh/secure-inference/matrix"
+ 	"math"
+-	"testing"
++	"strconv"
++	"strings"
++	"time"
+ )
+ 
+ func benchmarkThroughput[T m.Elem]() {
+@@ -30,7 +32,27 @@ func benchmarkThroughput[T m.Elem]() {
+ 	// Initialize the client
+ 	client.Init(server.Hint())
+ 
+-	for _, k := range ks {
++	// PATCH: respect the -batch / -batches CLI flags instead of iterating the
++	// hardcoded ks[] = {1, 8, 32, ..., 2048}. A single-batch measurement no
++	// longer pays for the whole array; a sweep passes -batches 1,2,4,... and
++	// still pays the DB generation and hint computation above only once.
++	const nTrials = 10
++	batches := []uint64{*batchSize}
++	if *batchList != "" {
++		batches = nil
++		for _, f := range strings.Split(*batchList, ",") {
++			f = strings.TrimSpace(f)
++			if f == "" {
++				continue
++			}
++			v, err := strconv.ParseUint(f, 10, 64)
++			if err != nil {
++				panic(fmt.Sprintf("bad -batches entry %q: %v", f, err))
++			}
++			batches = append(batches, v)
++		}
++	}
++	for _, k := range batches {
+ 		// Generate client queries
+ 		inputs := make([]*m.Matrix[T], k)
+ 		for j := range k {
+@@ -45,18 +67,38 @@ func benchmarkThroughput[T m.Elem]() {
+ 		// Set the batch size
+ 		server.SetBatch(k)
+ 
+-		result := testing.Benchmark(func(b *testing.B) {
+-			// Answer queries
+-			b.ResetTimer()
+-			for range b.N {
+-				server.Answer(queries)
+-			}
+-		})
+-		avgTimeSec := result.T.Seconds() / float64(result.N)
++		// PATCH: explicit N-trial loop, replacing testing.Benchmark which
++		// auto-scales iterations and reports only an averaged throughput.
++		// Timing each Answer separately lets us report per-trial times and
++		// a real standard deviation.
++		server.Answer(queries) // warmup
++		times := make([]float64, nTrials)
++		for i := 0; i < nTrials; i++ {
++			start := time.Now()
++			server.Answer(queries)
++			times[i] = time.Since(start).Seconds()
++		}
++		var sum float64
++		for _, t := range times {
++			sum += t
++		}
++		avgTimeSec := sum / float64(nTrials)
+ 		tputGBperS := (dbSizeGB * float64(k)) / avgTimeSec
++
++		// Machine-parseable per-trial times, in milliseconds.
++		fmt.Printf("TrialsMs(%d x %d, %d, %d, %d):", *rows, *cols, k, *pMod, nTrials)
++		for i, t := range times {
++			sep := ","
++			if i == nTrials-1 {
++				sep = ""
++			}
++			fmt.Printf(" %0.4f%s", t*1000.0, sep)
++		}
++		fmt.Printf("\n")
++
+ 		fmt.Printf(
+ 			"Throughput(%d x %d, %d, %d, %d): %0.2f GB/s\n",
+-			*rows, *cols, k, *pMod, result.N, tputGBperS,
++			*rows, *cols, k, *pMod, nTrials, tputGBperS,
+ 		)
+ 	}
+ }

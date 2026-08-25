@@ -1,0 +1,38 @@
+Purpose: fix a 2x memory blowup in CrowdSurf's benchmark-mode DB construction.
+
+Upstream: when `bench=true`, `NewDB` allocates a fresh L*M-sized `Elem32` matrix
+via `m.Rand`, ignoring the `data` slice the caller (`lhe_throughput.go` and
+similar) already allocated with the exact same shape. For a 4 GiB byte-DB (u32
+form = 16 GiB), this means two 16 GiB matrices live simultaneously (~32 GiB
+RSS), OoM'ing on 32 GiB instances (AWS g6e.xlarge).
+
+Fix: when the caller's `data` slice length already matches the DB's L*M cell
+count, wrap it via `m.NewFromRaw` (which shares the underlying storage) instead
+of allocating. Falls back to the original Rand path if lengths mismatch, so the
+patch is safe for any caller.
+
+Apply with: patch -l -p1 -d schemes/distpir < patches/02-distpir-bench-db-dedup.patch
+
+--- a/lhe/database.go
++++ b/lhe/database.go
+@@ -47,8 +47,18 @@
+ 	dbInfo := newDBInfo(uint64(len(data)), bitsPer, cols, pMod)
+ 	db := &DB{Info: dbInfo}
+     if bench {
+-        rng := mrand.New(mrand.NewSource(0))
+-		db.Data = m.Rand[m.Elem32](rng,dbInfo.L, dbInfo.M, pMod)
++        // PATCH: reuse caller's data slice as-is instead of allocating a fresh
++        // random matrix. Upstream allocates a 2nd L*M*4-byte matrix here even
++        // though the caller (e.g. lhe_throughput.go) already passed one of the
++        // same size, doubling peak RSS. For a 4 GiB byte-DB that's 32 GiB u32,
++        // which OoMs on 32 GiB instances (g6e.xlarge). NewFromRaw wraps without
++        // copying. Semantics unchanged: the passed data is already random.
++        if uint64(len(data)) == dbInfo.L*dbInfo.M {
++            db.Data = m.NewFromRaw(data, dbInfo.L, dbInfo.M)
++        } else {
++            rng := mrand.New(mrand.NewSource(0))
++            db.Data = m.Rand[m.Elem32](rng, dbInfo.L, dbInfo.M, pMod)
++        }
+         return db
+     } else {
+ 		db.Data = m.Zeros[m.Elem32](dbInfo.L, dbInfo.M)

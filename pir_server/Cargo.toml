@@ -1,0 +1,22 @@
+[package]
+name = "pir_server"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+cuda = ["sandwichpir/cuda"]
+default = []
+
+[dependencies]
+sandwichpir = { path = "..", default-features = false }
+spiral-rs = { git = "https://github.com/menonsamir/spiral-rs.git", branch = "avoid-avx512" }
+log = "0.4"
+env_logger = "0.11"
+clap = { version = "4.5.0", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+memmap2 = "0.9"
+
+[[bin]]
+name = "pir-serve"
+path = "src/bin/serve.rs"

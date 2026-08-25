@@ -1,0 +1,14 @@
+Purpose: stop cargo from treating the vendored InsPIRe crate as a member of the
+sandwichpir workspace. Same root cause as patch 05 (see that file); InsPIRe is a
+YPIR fork and inherits the same layout problem.
+
+Apply with: patch -l -p1 -d schemes/inspire < patches/06-inspire-standalone-workspace.patch
+
+--- a/research/InsPIRe/Cargo.toml
++++ b/research/InsPIRe/Cargo.toml
+@@ -29,3 +29,5 @@ pad = "0.1.6" # Or the latest version
+ [profile.release-with-debug]
+ inherits = "release"
+ debug = true
++
++[workspace]

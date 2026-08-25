@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sandwichpir.rodeo/result.schema.json",
+  "title": "PIR benchmark result",
+  "description": "Normalized JSON emitted by every runner in rodeo/runners/. Consumed by table/make_table.py.",
+  "type": "object",
+  "required": [
+    "scheme",
+    "instance",
+    "db_gib",
+    "trials",
+    "server_seconds",
+    "upload_bytes_per_query",
+    "download_bytes_per_query",
+    "upload_bytes_once",
+    "download_bytes_once",
+    "env"
+  ],
+  "properties": {
+    "scheme": {
+      "type": "string",
+      "enum": ["hintlesspir", "ypir_sp", "inspire_copt", "inspire_commopt", "onionpirv2", "distpir_spgpu", "sandwichpir"]
+    },
+    "instance": {
+      "type": "string",
+      "enum": ["cpu", "gpu"]
+    },
+    "db_gib": { "type": "number", "minimum": 0 },
+    "ell1": { "type": "integer", "minimum": 1 },
+    "ell2": { "type": "integer", "minimum": 1 },
+    "record_bytes": { "type": "integer", "minimum": 1 },
+    "batch": { "type": "integer", "minimum": 1, "default": 1 },
+    "trials": { "type": "integer", "minimum": 1 },
+    "warmup": { "type": "integer", "minimum": 0 },
+    "server_seconds": {
+      "type": "object",
+      "required": ["mean", "median", "stddev", "raw"],
+      "properties": {
+        "mean":   { "type": "number", "minimum": 0 },
+        "median": { "type": "number", "minimum": 0 },
+        "stddev": { "type": "number", "minimum": 0 },
+        "raw":    { "type": "array", "items": { "type": "number" } }
+      }
+    },
+    "client_seconds": {
+      "type": "object",
+      "properties": {
+        "query_gen":       { "type": "number" },
+        "response_decode": { "type": "number" }
+      }
+    },
+    "preproc_seconds": { "type": "number", "minimum": 0, "description": "One-time server-side setup per DB." },
+    "upload_bytes_per_query": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Per-query client-to-server bytes (LWE query + per-query KSMs, etc.)"
+    },
+    "download_bytes_per_query": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Per-query server-to-client bytes (response ciphertext(s))"
+    },
+    "upload_bytes_once": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Reuse-keys uploaded once per client (0 for all SimplePIR-family per D-002; ~1.5 MB for OnionPIRv2)"
+    },
+    "download_bytes_once": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Hint / mask downloaded once per client (0 for hintless; SimplePIR / DistPIR carry ~1 GiB)"
+    },
+    "storage_bytes_after_preproc": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total server-side storage. For OnionPIRv2 = 5x raw DB (NTT form)."
+    },
+    "peak_ram_bytes": { "type": "integer", "minimum": 0 },
+    "peak_vram_bytes": { "type": "integer", "minimum": 0 },
+    "config_notes": { "type": "string" },
+    "env": {
+      "type": "object",
+      "required": ["hostname", "instance_type", "commit_scheme", "commit_rodeo"],
+      "properties": {
+        "hostname":       { "type": "string" },
+        "instance_type":  { "type": "string" },
+        "cpu_model":      { "type": "string" },
+        "cpu_avx512":     { "type": "boolean" },
+        "gpu_model":      { "type": "string" },
+        "compute_cap":    { "type": "string" },
+        "ram_gib":        { "type": "number" },
+        "vram_gib":       { "type": "number" },
+        "commit_scheme":  { "type": "string", "description": "git rev-parse HEAD of schemes/<name>/" },
+        "commit_rodeo":   { "type": "string", "description": "git rev-parse HEAD of sandwichpir/" },
+        "timestamp_utc":  { "type": "string", "format": "date-time" },
+        "toolchain":      { "type": "object" }
+      }
+    }
+  }
+}

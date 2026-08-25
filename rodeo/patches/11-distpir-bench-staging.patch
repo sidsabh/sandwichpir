@@ -1,0 +1,16 @@
+--- a/benches/lhe_throughput.go
++++ b/benches/lhe_throughput.go
+@@ -14,7 +14,12 @@
+ 	// Generate random matrix
+ 	prg := rand.NewRandomBufPRG()
+ 	numLimbs := uint64(math.Ceil(float64(*bitsPer) / 32.0))
+-	matrix := m.Rand[m.Elem32](prg, *rows*numLimbs, *cols, *pMod)
++	// PATCH: stage with an untouched allocation. NewDB's bench path ignores the
++	// staged content (on squished-size mismatch it generates its own random DB),
++	// so m.Rand here only burns time and commits rows*cols*4 bytes of RSS
++	// (64 GiB at a 16 GiB database). m.New leaves the pages unwritten (m.Zeros
++	// would memset them); with vm.overcommit_memory=1 the mapping costs nothing.
++	matrix := m.New[m.Elem32](*rows*numLimbs, *cols)
+ 
+ 	// Build client / server objects
+ 	ctx := crypto.NewContext[T](T(0).Bitlen(), *cols, *pMod)

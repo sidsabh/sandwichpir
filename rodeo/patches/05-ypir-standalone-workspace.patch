@@ -1,0 +1,23 @@
+Purpose: stop cargo from treating the vendored YPIR crate as a member of the
+sandwichpir workspace.
+
+The baseline schemes are git submodules under rodeo/schemes/, which places them
+inside the sandwichpir repository. cargo walks upward from a crate looking for a
+workspace root, finds sandwichpir/Cargo.toml, and refuses to build:
+
+    error: current package believes it's in a workspace when it's not
+
+Adding `exclude` to the parent workspace does NOT fix this under the cargo
+1.78 that YPIR's rust-toolchain.toml pins. An empty `[workspace]` table in the
+vendored crate does, and keeps the fix local to the submodule.
+
+Apply with: patch -l -p1 -d schemes/ypir < patches/05-ypir-standalone-workspace.patch
+
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -24,3 +24,5 @@ test-log = "0.2.14"
+ [profile.release-with-debug]
+ inherits = "release"
+ debug = true
++
++[workspace]

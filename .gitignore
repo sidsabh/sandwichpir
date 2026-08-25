@@ -1,0 +1,25 @@
+target/
+node_modules/
+*.bin
+*.pkl
+*.br
+package-lock.json
+wikipedia/web/pkg/
+wikipedia/server/data/
+
+# Vendor dir is checked in (no npm on HPC clusters)
+!wikipedia/web/vendor/
+!wikipedia/web/vendor/**
+benches/build/
+
+# rodeo — local-only working notes (not for public repo)
+rodeo/HANDOFF.md
+rodeo/STATE.md
+rodeo/DECISIONS.md
+rodeo/agents/
+rodeo/research/
+rodeo/sessions/
+rodeo/task.pdf
+rodeo/*/results/*.json
+rodeo/*/logs/
+__pycache__/

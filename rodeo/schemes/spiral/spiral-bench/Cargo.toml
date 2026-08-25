@@ -1,0 +1,27 @@
+# SpiralPack benchmark driver. spiral-rs is a bare library (no bin/bench), so we
+# drive its public API directly, pinned to the exact revision YPIR uses
+# (menonsamir/spiral-rs avoid-avx512 @ 2760622e) for a consistent, reproducible
+# baseline. spiral-rs's SIMD path is gated on target_feature="avx2"; build with
+# -C target-cpu=native so the AVX2 kernels compile (it has no AVX-512 path).
+# Empty [workspace] isolates this crate from the parent sandwichpir workspace
+# (same reason as the ypir/inspire vendored crates), so cargo does not try to
+# fold it into rodeo's tree.
+[workspace]
+
+[package]
+name = "spiral-bench"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "spiral-bench"
+path = "src/main.rs"
+
+# Pin canonical origin/main (has pub client/server, params_from_json, and an
+# AVX-512 path -- fairer for a CPU baseline than the avoid-avx512 branch YPIR
+# pins). The `server` feature gates the server-side query processing.
+[dependencies]
+spiral-rs = { git = "https://github.com/menonsamir/spiral-rs.git", rev = "9919bea20e8ac227b7a9c2ed5e74c8b1ec4bdc9e", features = ["server"] }
+
+[profile.release]
+opt-level = 3

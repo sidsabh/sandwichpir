@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Private Wikipedia</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8f9fa; color: #202122; }
+    .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+
+    header { text-align: center; padding: 24px 0 16px; }
+    header h1 { font-size: 26px; font-weight: 400; }
+    header p { color: #72777d; font-size: 14px; margin-top: 4px; }
+    .badge { display: inline-block; background: #14866d; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; margin-top: 6px; letter-spacing: 0.5px; }
+
+    #status { text-align: center; padding: 10px; margin: 8px 0; border-radius: 4px; font-size: 13px; }
+    .status-loading { background: #eaf3ff; color: #36c; }
+    .status-ready { background: #d5fdf4; color: #14866d; }
+    .status-error { background: #fee7e6; color: #d33; }
+    .status-query { background: #fff3cd; color: #856404; }
+
+    .search-wrap { position: relative; margin: 16px 0; }
+    #search {
+      width: 100%; padding: 12px 16px; font-size: 16px;
+      border: 2px solid #a2a9b1; border-radius: 24px; outline: none; background: white;
+    }
+    #search:focus { border-color: #36c; box-shadow: 0 0 0 1px #36c; }
+    #search:disabled { background: #eaecf0; }
+
+    #suggestions {
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 10;
+      background: white; border: 1px solid #a2a9b1; border-top: none;
+      border-radius: 0 0 12px 12px; max-height: 320px; overflow-y: auto;
+      display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+    .suggestion { padding: 10px 16px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eaecf0; }
+    .suggestion:hover { background: #eaf3ff; }
+    .suggestion:last-child { border-bottom: none; }
+
+    #article { background: white; border: 1px solid #eaecf0; border-radius: 8px; padding: 28px; margin: 20px 0; display: none; line-height: 1.65; }
+    #article-title { font-size: 28px; font-weight: 400; border-bottom: 1px solid #eaecf0; padding-bottom: 8px; margin-bottom: 4px; }
+    #article-meta { color: #72777d; font-size: 12px; margin-bottom: 16px; }
+    #article-body { font-size: 15px; white-space: pre-wrap; word-wrap: break-word; }
+    #article-body h2 { font-size: 20px; font-weight: 400; border-bottom: 1px solid #eaecf0; padding: 8px 0 4px; margin: 20px 0 8px; }
+    #article-body h3 { font-size: 17px; font-weight: 600; margin: 16px 0 6px; }
+    #article-body p { margin: 8px 0; }
+
+    .init-diag { text-align: center; font-size: 11px; color: #72777d; margin: 4px 0 8px; }
+    footer { text-align: center; padding: 24px 0; color: #72777d; font-size: 12px; line-height: 1.8; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Private Wikipedia</h1>
+      <p>Search and read Wikipedia articles without the server knowing what you read.</p>
+      <div class="badge">SandwichPIR</div>
+    </header>
+
+    <div id="status" class="status-loading">Initializing...</div>
+    <div id="init-diagnostics" class="init-diag" style="display:none"></div>
+
+    <div class="search-wrap">
+      <input type="text" id="search" placeholder="Search Wikipedia..." disabled autocomplete="off">
+      <div id="suggestions"></div>
+    </div>
+
+    <div id="article">
+      <h1 id="article-title"></h1>
+      <div id="article-meta"></div>
+      <div id="article-body"></div>
+    </div>
+
+    <div style="text-align:center; margin: 12px 0;">
+      <label style="font-size: 12px; color: #72777d; cursor: pointer;">
+        <input type="checkbox" id="diag-toggle" checked> Show diagnostics
+      </label>
+    </div>
+
+    <footer>
+      The server processes your encrypted query without learning which article you requested.<br>
+      6.4 million articles &middot; 192-bit security &middot; InspiRING packing
+    </footer>
+  </div>
+
+  <script type="module" src="/js/wiki.js"></script>
+</body>
+</html>

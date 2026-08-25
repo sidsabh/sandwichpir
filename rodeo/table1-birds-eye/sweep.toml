@@ -1,0 +1,200 @@
+# Sweep specification — feeds `make measure` and the runners.
+# Every (scheme, db) row in Table 1 corresponds to one entry here.
+
+[[row]]
+scheme      = "hintlesspir"
+instance    = "cpu"
+db_gib      = 1
+ell1        = 32768         # 2^15
+ell2        = 32768         # 2^15
+record_kib  = 32
+trials      = 5
+warmup      = 1
+enabled     = true
+
+[[row]]
+scheme      = "hintlesspir"
+instance    = "cpu"
+db_gib      = 4
+ell1        = 131072        # 2^17
+ell2        = 32768
+record_kib  = 32
+trials      = 5
+warmup      = 1
+enabled     = true
+
+[[row]]
+scheme      = "hintlesspir"
+instance    = "cpu"
+db_gib      = 16
+ell1        = 524288        # 2^19
+ell2        = 32768
+record_kib  = 32
+trials      = 3
+warmup      = 1
+enabled     = true
+
+[[row]]
+scheme      = "ypir_sp"
+instance    = "cpu"
+db_gib      = 1
+ell1        = 32768
+ell2        = 32768
+record_kib  = 32
+trials      = 5
+warmup      = 1
+enabled     = true
+
+[[row]]
+scheme      = "ypir_sp"
+instance    = "cpu"
+db_gib      = 4
+ell1        = 131072
+ell2        = 32768
+record_kib  = 32
+trials      = 5
+warmup      = 1
+enabled     = true
+
+[[row]]
+scheme      = "ypir_sp"
+instance    = "cpu"
+db_gib      = 16
+ell1        = 524288
+ell2        = 32768
+record_kib  = 32
+trials      = 3
+warmup      = 1
+enabled     = true
+
+[[row]]
+scheme      = "inspire_copt"
+instance    = "cpu"
+db_gib      = 1
+ell1        = 32768
+ell2        = 32768
+record_kib  = 32
+trials      = 5
+warmup      = 1
+enabled     = true
+
+[[row]]
+scheme      = "inspire_copt"
+instance    = "cpu"
+db_gib      = 4
+ell1        = 131072
+ell2        = 32768
+record_kib  = 32
+trials      = 5
+warmup      = 1
+enabled     = true
+
+[[row]]
+scheme      = "inspire_copt"
+instance    = "cpu"
+db_gib      = 16
+ell1        = 524288
+ell2        = 32768
+record_kib  = 32
+trials      = 3
+warmup      = 1
+enabled     = true
+
+[[row]]
+scheme       = "onionpirv2"
+instance     = "cpu"
+db_gib       = 1
+config       = "k1_comp"    # 3072 B natural record
+record_bytes = 3072
+trials       = 5
+warmup       = 1
+enabled      = true
+
+# OnionPIRv2 at 4 / 16 GiB explicitly disabled (5× NTT bloat OoMs c7i.2xlarge).
+[[row]]
+scheme       = "onionpirv2"
+instance     = "cpu"
+db_gib       = 4
+config       = "k1_comp"
+enabled      = false
+skip_reason  = "OoM: 5x storage bloat = 20 GiB > 16 GiB c7i DRAM (D-005)"
+
+[[row]]
+scheme       = "onionpirv2"
+instance     = "cpu"
+db_gib       = 16
+config       = "k1_comp"
+enabled      = false
+skip_reason  = "OoM: 5x storage bloat = 80 GiB > 16 GiB c7i DRAM (D-005)"
+
+[[row]]
+scheme      = "distpir_spgpu"
+instance    = "gpu"
+db_gib      = 1
+ell1        = 32768
+ell2        = 32768
+record_kib  = 32
+mode        = "hybrid"      # SimplePIR-on-GPU scan
+trials      = 10
+warmup      = 2
+enabled     = true
+
+[[row]]
+scheme      = "distpir_spgpu"
+instance    = "gpu"
+db_gib      = 4
+ell1        = 131072
+ell2        = 32768
+record_kib  = 32
+mode        = "hybrid"
+trials      = 10
+warmup      = 2
+enabled     = true
+
+[[row]]
+scheme      = "distpir_spgpu"
+instance    = "gpu"
+db_gib      = 16
+ell1        = 524288
+ell2        = 32768
+record_kib  = 32
+mode        = "hybrid"
+trials      = 10
+warmup      = 2
+enabled     = true
+
+[[row]]
+scheme      = "sandwichpir"
+instance    = "gpu"
+db_gib      = 1
+ell1        = 32768
+ell2        = 32768
+record_kib  = 32
+batch       = 1
+trials      = 10
+warmup      = 2
+enabled     = true
+
+[[row]]
+scheme      = "sandwichpir"
+instance    = "gpu"
+db_gib      = 4
+ell1        = 131072
+ell2        = 32768
+record_kib  = 32
+batch       = 1
+trials      = 10
+warmup      = 2
+enabled     = true
+
+[[row]]
+scheme      = "sandwichpir"
+instance    = "gpu"
+db_gib      = 16
+ell1        = 524288
+ell2        = 32768
+record_kib  = 32
+batch       = 1
+trials      = 10
+warmup      = 2
+enabled     = true

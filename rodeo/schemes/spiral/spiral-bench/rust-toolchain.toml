@@ -1,0 +1,4 @@
+# spiral-rs uses `#![feature(stdarch_x86_avx512)]`, so it needs the same nightly
+# it pins upstream. Matching it keeps the AVX-512 intrinsics available.
+[toolchain]
+channel = "nightly-2024-02-07"

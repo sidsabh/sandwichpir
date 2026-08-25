@@ -1,0 +1,32 @@
+diff --git a/tests/test-pir.cpp b/tests/test-pir.cpp
+index d560133..ecf08f2 100644
+--- a/tests/test-pir.cpp
++++ b/tests/test-pir.cpp
+@@ -9,14 +9,13 @@
+ #include "pir.h"
+ #include "crt.h"
+ 
+-void test_pir()
++void test_pir(int32_t r)
+ {
+     // r = 16     : 256 MB
+     // r = 64     :   1 GB
+-    // r = 64 * 8 :   8 GB 
++    // r = 64 * 8 :   8 GB
++
+ 
+-    int32_t r = 16; // 256 MB
+-    
+     Secret queryKey(crtMod, false); // stored in coefficient form
+ 
+     // uint32_t row = rand() & (N - 1);
+@@ -138,7 +137,8 @@ int main(int argc, char** argv)
+ {
+     // srand(time(NULL));
+ 
+-    test_pir();
++    int32_t db_mb = argc > 1 ? atoi(argv[1]) : 256;
++    test_pir(db_mb / 16);
+ 
+     return 0;
+ }

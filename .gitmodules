@@ -1,0 +1,15 @@
+[submodule "rodeo/schemes/ypir"]
+	path = rodeo/schemes/ypir
+	url = https://github.com/menonsamir/ypir.git
+[submodule "rodeo/schemes/hintlesspir"]
+	path = rodeo/schemes/hintlesspir
+	url = https://github.com/google/hintless_pir.git
+[submodule "rodeo/schemes/inspire"]
+	path = rodeo/schemes/inspire
+	url = https://github.com/google/private-membership.git
+[submodule "rodeo/schemes/distpir"]
+	path = rodeo/schemes/distpir
+	url = https://github.com/ryanleh/crowdsurf.git
+[submodule "rodeo/schemes/kspir"]
+	path = rodeo/schemes/kspir
+	url = https://github.com/mmingluo/kspir.git
