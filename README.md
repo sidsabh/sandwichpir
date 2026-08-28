@@ -1,11 +1,13 @@
 # SandwichPIR
 
 This is an implementation of the SandwichPIR scheme for single-server private
-information retrieval (paper under submission). SandwichPIR runs the server's
-two heavy computations, the database scan and the response packing, as INT8
-tensor-core matrix multiplications on a GPU; response compression uses the
-InspiRING ring-packing algorithm. A client retrieves one record from a
-server-hosted database without the server learning which record was requested.
+information retrieval, introduced in ["From Lattices to Tensor Cores:
+Accelerating Private Information Retrieval"](https://eprint.iacr.org/2026/1816).
+SandwichPIR runs the server's two heavy computations, the database scan and
+the response packing, as INT8 tensor-core matrix multiplications on a GPU;
+response compression uses the InspiRING ring-packing algorithm. A client
+retrieves one record from a server-hosted database without the server learning
+which record was requested.
 
 The repository contains the core scheme (`src/`), a stateless HTTP PIR server
 (`pir_server/`), a client library that compiles natively or to WebAssembly
@@ -109,6 +111,20 @@ private in-browser search:
 The implementation extends
 [spiral-rs](https://github.com/menonsamir/spiral-rs) and the
 [YPIR](https://github.com/menonsamir/ypir) codebase.
+
+## Citing
+
+Please cite this work as:
+
+```
+@misc{SW26,
+  author       = {Sidaarth Sabhnani and David J. Wu},
+  title        = {From Lattices to Tensor Cores: Accelerating Private Information Retrieval},
+  howpublished = {Cryptology {ePrint} Archive, Paper 2026/1816},
+  year         = {2026},
+  url          = {https://eprint.iacr.org/2026/1816}
+}
+```
 
 ## Authors
 
